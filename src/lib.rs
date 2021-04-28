@@ -6,7 +6,6 @@
 //! extern crate tokio;
 
 //! use atomic_batcher::*;
-//! use std::sync::Arc;
 //! use std::time::{Duration, Instant};
 //! use tokio::prelude::*;
 //! use tokio::timer::Delay;
@@ -54,7 +53,7 @@
 //! [4, 5, 6, 7, 8, 9]
 //! ```
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex};
 
 /// Batching representation.
 pub struct Batcher<T> {
@@ -67,14 +66,14 @@ pub struct Batcher<T> {
 
 impl<T> Batcher<T> {
   /// Create a new batcher with a run function.
-  pub fn new(run: fn(Vec<T>, &Batcher<T>) -> ()) -> Arc<Self> {
-    Arc::new(Batcher {
+  pub fn new(run: fn(Vec<T>, &Batcher<T>) -> ()) -> Self {
+    Batcher {
       running: AtomicBool::new(false),
       pending_batch: Mutex::new(Vec::new()),
       pending_callbacks: Mutex::new(Vec::new()),
       callbacks: Mutex::new(Vec::new()),
       run,
-    })
+    }
   }
   /// Accept an array of values and a callback.
   /// The accepted callback is called when the batch containing the values have been run.
