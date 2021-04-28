@@ -12,14 +12,14 @@
 
 //! fn main() {
 //!   let when = Instant::now() + Duration::from_millis(2000);
-//!   let run = move |val: Vec<u64>, _batcher: &Batcher<u64>| -> () {
+//!   let run = move |val: Vec<u64>, _batcher: &mut Batcher<u64>| -> () {
 //!     println!("{:?}", val);  
 //!   };
 //!
 //!   // Create a batcher with a run function which will be called  
 //!   // when batcher's inner state `running` is OFF and inner state `pending_batch`
 //!   // is not empty.
-//!   let batcher = Batcher::new(run);
+//!   let mut batcher = Batcher::new(run);
 //!
 //!   // Before this first append, batcher's inner state `running` is initial OFF,
 //!   // so batcher will call the run function with the append value directly,
@@ -52,62 +52,58 @@
 //! // two seconds later
 //! [4, 5, 6, 7, 8, 9]
 //! ```
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex};
 
 /// Batching representation.
 pub struct Batcher<T> {
-  running: AtomicBool,
-  pending_batch: Mutex<Vec<T>>,
-  pending_callbacks: Mutex<Vec<fn(Result<(), &str>) -> ()>>,
-  callbacks: Mutex<Vec<fn(Result<(), &str>) -> ()>>,
-  run: fn(Vec<T>, &Batcher<T>) -> (),
+  running: bool,
+  pending_batch: Vec<T>,
+  pending_callbacks: Vec<fn(Result<(), &str>) -> ()>,
+  callbacks: Vec<fn(Result<(), &str>) -> ()>,
+  run: fn(Vec<T>, &mut Batcher<T>) -> (),
 }
 
 impl<T> Batcher<T> {
   /// Create a new batcher with a run function.
-  pub fn new(run: fn(Vec<T>, &Batcher<T>) -> ()) -> Self {
+  pub fn new(run: fn(Vec<T>, &mut Batcher<T>) -> ()) -> Self {
     Batcher {
-      running: AtomicBool::new(false),
-      pending_batch: Mutex::new(Vec::new()),
-      pending_callbacks: Mutex::new(Vec::new()),
-      callbacks: Mutex::new(Vec::new()),
+      running: false,
+      pending_batch: Vec::new(),
+      pending_callbacks: Vec::new(),
+      callbacks: Vec::new(),
       run,
     }
   }
   /// Accept an array of values and a callback.
   /// The accepted callback is called when the batch containing the values have been run.
-  pub fn append(&self, val: Vec<T>) -> () {
+  pub fn append(&mut self, val: Vec<T>) -> () {
     self.appendcb(val, |_|{})
   }
 
-  pub fn appendcb(&self, val: Vec<T>, cb: fn(Result<(), &str>) -> ()) -> () {
-    if self.running.load(Ordering::Relaxed) {
-      if self.pending_batch.lock().unwrap().len() == 0 {
-        *self.pending_callbacks.lock().unwrap() = Vec::new();
+  pub fn appendcb(&mut self, val: Vec<T>, cb: fn(Result<(), &str>) -> ()) -> () {
+    if self.running {
+      if self.pending_batch.len() == 0 {
+        self.pending_callbacks = Vec::new();
       }
-      self.pending_batch.lock().unwrap().extend(val);
-      self.callbacks.lock().unwrap().push(cb);
+      self.pending_batch.extend(val);
+      self.callbacks.push(cb);
     } else {
-      *self.callbacks.lock().unwrap() = vec![cb];
-      self.running.store(true, Ordering::Relaxed);
+      self.callbacks = vec![cb];
+      self.running = true;
       (self.run)(val, self);
     }
   }
   /// Turn batcher's running state to off. then call the run function.
-  pub fn done(&self, err: Result<(), &str>) -> () {
-    for cb in self.callbacks.lock().unwrap().iter() {
+  pub fn done(&mut self, err: Result<(), &str>) -> () {
+    for cb in self.callbacks.iter() {
       cb(err)
     }
-    self.running.store(false, Ordering::Relaxed);
-    let mut pending_callbacks = self.pending_callbacks.lock().unwrap();
-    let mut pending_batch = self.pending_batch.lock().unwrap();
-    *self.callbacks.lock().unwrap() = pending_callbacks.drain(..).collect();
-    let nextbatch: Vec<T> = pending_batch.drain(..).collect();
-    if nextbatch.is_empty() && self.callbacks.lock().unwrap().is_empty() {
+    self.running = false;
+    self.callbacks = self.pending_callbacks.drain(..).collect();
+    let nextbatch: Vec<T> = self.pending_batch.drain(..).collect();
+    if nextbatch.is_empty() && self.callbacks.is_empty() {
       return;
     }
-    self.running.store(true, Ordering::Relaxed);
+    self.running = true;
     (self.run)(nextbatch, self);
   }
 }
