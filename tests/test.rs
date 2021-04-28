@@ -11,7 +11,7 @@ fn run_once() {
   fn run(val: Vec<u64>, _batcher: &Batcher<u64>) -> () {
     assert_eq!(val, vec![1, 2, 3]);
   };
-  let batcher = Batcher::new(Box::new(run));
+  let batcher = Batcher::new(run);
   batcher.append(vec![1, 2, 3], None);
 }
 
@@ -25,7 +25,7 @@ fn run_with_done() {
       assert_eq!(val, vec![4, 5, 6]);
     }
   };
-  let batcher = Batcher::new(Box::new(run));
+  let batcher = Batcher::new(run);
   batcher.append(vec![1, 2, 3], None);
 }
 
@@ -38,14 +38,14 @@ fn run_with_callback() {
       assert_eq!(val, vec![]);
     }
   };
-  let batcher = Batcher::new(Box::new(run));
+  let batcher = Batcher::new(run);
   batcher.append(
     vec![1, 2, 3],
-    Some(Box::new(move |err| {
+    Some(move |err| {
       if let Err(s) = err {
         assert_eq!(s, "some wrong");
       }
-    })),
+    }),
   );
 }
 
@@ -57,7 +57,7 @@ fn run_async() {
       assert_eq!(val, vec![4, 5, 6, 7, 8, 9]);
     }
   };
-  let batcher = Batcher::new(Box::new(run));
+  let batcher = Batcher::new(run);
   batcher.append(vec![1, 2, 3], None);
   batcher.append(vec![4, 5, 6], None);
   batcher.append(vec![7, 8, 9], None);

@@ -20,7 +20,7 @@
 //!   // Create a batcher with a run function which will be called  
 //!   // when batcher's inner state `running` is OFF and inner state `pending_batch`
 //!   // is not empty.
-//!   let batcher = Batcher::new(Box::new(run));
+//!   let batcher = Batcher::new(run);
 //!
 //!   // Before this first append, batcher's inner state `running` is initial OFF,
 //!   // so batcher will call the run function with the append value directly,
@@ -56,7 +56,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-type Cb = Box<Fn(Result<(), &str>) -> () + Send + Sync>;
+type Cb = fn(Result<(), &str>) -> ();
 /// Describing optional batched callback function
 pub type CbOption = Option<Cb>;
 
@@ -66,12 +66,12 @@ pub struct Batcher<T> {
   pending_batch: Mutex<Vec<T>>,
   pending_callbacks: Mutex<Vec<Cb>>,
   callbacks: Mutex<Vec<Cb>>,
-  run: Box<Fn(Vec<T>, &Batcher<T>) -> () + Send + Sync>,
+  run: fn(Vec<T>, &Batcher<T>) -> (),
 }
 
 impl<T> Batcher<T> {
   /// Create a new batcher with a run function.
-  pub fn new(run: Box<Fn(Vec<T>, &Batcher<T>) -> () + Send + Sync>) -> Arc<Self> {
+  pub fn new(run: fn(Vec<T>, &Batcher<T>) -> ()) -> Arc<Self> {
     Arc::new(Batcher {
       running: AtomicBool::new(false),
       pending_batch: Mutex::new(Vec::new()),
