@@ -12,21 +12,21 @@ fn run_once() {
     assert_eq!(val, vec![1, 2, 3]);
   };
   let batcher = Batcher::new(run);
-  batcher.append(vec![1, 2, 3], None);
+  batcher.append(vec![1, 2, 3]);
 }
 
 #[test]
 fn run_with_done() {
   let run = |val: Vec<u64>, batcher: &Batcher<u64>| -> () {
     if val == vec![1, 2, 3] {
-      batcher.append(vec![4, 5, 6], None);
+      batcher.append(vec![4, 5, 6]);
       batcher.done(Ok(()));
     } else {
       assert_eq!(val, vec![4, 5, 6]);
     }
   };
   let batcher = Batcher::new(run);
-  batcher.append(vec![1, 2, 3], None);
+  batcher.append(vec![1, 2, 3]);
 }
 
 #[test]
@@ -39,13 +39,13 @@ fn run_with_callback() {
     }
   };
   let batcher = Batcher::new(run);
-  batcher.append(
+  batcher.appendcb(
     vec![1, 2, 3],
-    Some(move |err| {
+    move |err| {
       if let Err(s) = err {
         assert_eq!(s, "some wrong");
       }
-    }),
+    },
   );
 }
 
@@ -58,9 +58,9 @@ fn run_async() {
     }
   };
   let batcher = Batcher::new(run);
-  batcher.append(vec![1, 2, 3], None);
-  batcher.append(vec![4, 5, 6], None);
-  batcher.append(vec![7, 8, 9], None);
+  batcher.append(vec![1, 2, 3]);
+  batcher.append(vec![4, 5, 6]);
+  batcher.append(vec![7, 8, 9]);
   
   let task = Delay::new(when)
     .and_then(move |_| {

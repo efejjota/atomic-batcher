@@ -25,13 +25,13 @@
 //!   // Before this first append, batcher's inner state `running` is initial OFF,
 //!   // so batcher will call the run function with the append value directly,
 //!   // then inner state `running` is ON.
-//!   batcher.append(vec![1, 2, 3], None);
+//!   batcher.append(vec![1, 2, 3]);
 //!
 //!   // Now because inner state `running` is ON, run function won't be called.
 //!   // But the data `vec![4, 5, 6]` and `vec![7, 8, 9]` will be pushed to
 //!   // batcher's `pending_batch`.
-//!   batcher.append(vec![4, 5, 6], None);
-//!   batcher.append(vec![7, 8, 9], None);
+//!   batcher.append(vec![4, 5, 6]);
+//!   batcher.append(vec![7, 8, 9]);
 //!
 //!   // Now `pending_batch` is vec![4, 5, 6, 7, 8, 9].
 //!   // After 2 seconds, batcher.done get called which will turn `running` to OFF,
@@ -56,16 +56,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-type Cb = fn(Result<(), &str>) -> ();
-/// Describing optional batched callback function
-pub type CbOption = Option<Cb>;
-
 /// Batching representation.
 pub struct Batcher<T> {
   running: AtomicBool,
   pending_batch: Mutex<Vec<T>>,
-  pending_callbacks: Mutex<Vec<Cb>>,
-  callbacks: Mutex<Vec<Cb>>,
+  pending_callbacks: Mutex<Vec<fn(Result<(), &str>) -> ()>>,
+  callbacks: Mutex<Vec<fn(Result<(), &str>) -> ()>>,
   run: fn(Vec<T>, &Batcher<T>) -> (),
 }
 
@@ -82,19 +78,19 @@ impl<T> Batcher<T> {
   }
   /// Accept an array of values and a callback.
   /// The accepted callback is called when the batch containing the values have been run.
-  pub fn append(&self, val: Vec<T>, cb: CbOption) -> () {
+  pub fn append(&self, val: Vec<T>) -> () {
+    self.appendcb(val, |_|{})
+  }
+
+  pub fn appendcb(&self, val: Vec<T>, cb: fn(Result<(), &str>) -> ()) -> () {
     if self.running.load(Ordering::Relaxed) {
       if self.pending_batch.lock().unwrap().len() == 0 {
         *self.pending_callbacks.lock().unwrap() = Vec::new();
       }
       self.pending_batch.lock().unwrap().extend(val);
-      if let Some(cb) = cb {
-        self.callbacks.lock().unwrap().push(cb);
-      }
+      self.callbacks.lock().unwrap().push(cb);
     } else {
-      if let Some(cb) = cb {
-        *self.callbacks.lock().unwrap() = vec![cb];
-      }
+      *self.callbacks.lock().unwrap() = vec![cb];
       self.running.store(true, Ordering::Relaxed);
       (self.run)(val, self);
     }
