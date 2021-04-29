@@ -41,7 +41,7 @@ fn run_with_callback() {
   let mut batcher = Batcher::new(run);
   batcher.appendcb(
     vec![1, 2, 3],
-    move |err| {
+    |err| {
       if let Err(s) = err {
         assert_eq!(s, "some wrong");
       }
@@ -52,7 +52,7 @@ fn run_with_callback() {
 #[test]
 fn run_async() {
   let when = Instant::now() + Duration::from_millis(1000);
-  let run = move |val: Vec<u64>, _batcher: &mut Batcher<u64>| -> () {
+  let run = |val: Vec<u64>, _batcher: &mut Batcher<u64>| -> () {
     if val != vec![1, 2, 3] {
       assert_eq!(val, vec![4, 5, 6, 7, 8, 9]);
     }

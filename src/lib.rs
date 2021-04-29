@@ -12,7 +12,7 @@
 
 //! fn main() {
 //!   let when = Instant::now() + Duration::from_millis(2000);
-//!   let run = move |val: Vec<u64>, _batcher: &mut Batcher<u64>| -> () {
+//!   let run = |val: Vec<u64>, _batcher: &mut Batcher<u64>| -> () {
 //!     println!("{:?}", val);  
 //!   };
 //!
