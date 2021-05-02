@@ -55,7 +55,7 @@ pub struct Batcher<T> {
   run: fn(Vec<T>, mpsc::Sender<()>) -> (),
 }
 
-impl <T> Drop for Batcher<T> {
+impl<T> Drop for Batcher<T> {
   /// Before falling out-of-scope Batcher will
   /// ensure all pending_batches are executed.
   fn drop(&mut self) {
@@ -77,10 +77,14 @@ impl<T> Batcher<T> {
   /// Accept an array of values and a callback.
   /// The accepted callback is called when the batch containing the values have been run.
   pub fn append(&mut self, val: Vec<T>) -> () {
-    self.appendcb(val, |_|{})
+    self.appendcb(val, |_| {})
   }
 
-  pub fn appendcb(&mut self, val: Vec<T>, cb: fn(Result<(), &str>) -> ()) -> () {
+  pub fn appendcb(
+    &mut self,
+    val: Vec<T>,
+    cb: fn(Result<(), &str>) -> (),
+  ) -> () {
     if self.running.is_some() {
       if self.pending_batch.len() == 0 {
         self.pending_callbacks = Vec::new();

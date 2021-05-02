@@ -1,7 +1,7 @@
 extern crate atomic_batcher;
 
-use std::sync::mpsc;
 use atomic_batcher::*;
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 #[test]
@@ -37,14 +37,11 @@ fn run_with_callback() {
     }
   };
   let mut batcher = Batcher::new(run);
-  batcher.appendcb(
-    vec![1, 2, 3],
-    |err| {
-      if let Err(s) = err {
-        assert_eq!(s, "some wrong");
-      }
-    },
-  );
+  batcher.appendcb(vec![1, 2, 3], |err| {
+    if let Err(s) = err {
+      assert_eq!(s, "some wrong");
+    }
+  });
 }
 
 #[test]
