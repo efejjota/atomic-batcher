@@ -3,13 +3,10 @@
 //! ## Example
 //! ```rust
 //! extern crate atomic_batcher;
-//! extern crate tokio;
 
 //! use std::sync::mpsc;
 //! use atomic_batcher::*;
 //! use std::time::{Duration, Instant};
-//! use tokio::prelude::*;
-//! use tokio::timer::Delay;
 
 //! fn main() {
 //!   let when = Instant::now() + Duration::from_millis(2000);
@@ -34,16 +31,9 @@
 //!   batcher.append(vec![7, 8, 9]);
 //!
 //!   // Now `pending_batch` is vec![4, 5, 6, 7, 8, 9].
-//!   // After 2 seconds, batcher.done get called which will turn `running` to OFF,
-//!   // then call run function with `pending_batch`.
-//!   // Finally turn `running` to ON again.
-//!   let task = Delay::new(when)
-//!   .and_then(move |_| {
-//!     //batcher.done(Ok(()));
-//!     Ok(())
-//!   })
-//!   .map_err(|e| panic!("delay errored; err={:?}", e));
-//!   tokio::run(task);
+//!   // Just before batcher falls out-of-scope batcher.drop gets automatically
+//!   // called which will turn `running` to OFF, then call run function with
+//!   // `pending_batch`. Finally turn `running` to ON again.
 //! }
 //! ```
 //! Running the above example will print

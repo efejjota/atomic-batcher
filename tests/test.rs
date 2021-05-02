@@ -1,11 +1,8 @@
 extern crate atomic_batcher;
-extern crate tokio;
 
 use std::sync::mpsc;
 use atomic_batcher::*;
 use std::time::{Duration, Instant};
-use tokio::prelude::*;
-use tokio::timer::Delay;
 
 #[test]
 fn run_once() {
@@ -62,12 +59,4 @@ fn run_async() {
   batcher.append(vec![1, 2, 3]);
   batcher.append(vec![4, 5, 6]);
   batcher.append(vec![7, 8, 9]);
-  
-  let task = Delay::new(when)
-    .and_then(move |_| {
-      //batcher.done(Ok(()));
-      Ok(())
-    })
-    .map_err(|e| panic!("delay errored; err={:?}", e));
-  tokio::run(task);
 }
